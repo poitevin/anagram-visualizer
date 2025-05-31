@@ -412,21 +412,26 @@ const AnagramTransformer = () => {
   };
 
   // Initialize
-  useEffect(() => {
-    if (!containerRef.current || content.texts.length === 0) return;
+useEffect(() => {
+  if (!containerRef.current || content.texts.length === 0) return;
 
-    const { fromText } = getCurrentTexts();
+  // Add small delay to ensure container is fully rendered
+    const timer = setTimeout(() => {
+      const { fromText } = getCurrentTexts();
 
-    try {
-      containerRef.current.innerHTML = "";
-      const typography = calculateTypography();
-      if (!typography) return;
+      try {
+        containerRef.current.innerHTML = "";
+        const typography = calculateTypography();
+        if (!typography) return;
 
-      const letters1 = createLetterElements(fromText, "text1", containerRef.current, typography);
-      setIsInitialized(true);
-    } catch (error) {
-      console.error("Error in initialization:", error);
-    }
+        const letters1 = createLetterElements(fromText, "text1", containerRef.current, typography);
+        setIsInitialized(true);
+      } catch (error) {
+        console.error("Error in initialization:", error);
+      }
+    }, 100);
+
+    return () => clearTimeout(timer);
   }, [currentTextIndex, content.texts]);
 
   // Handle play button
