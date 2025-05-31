@@ -11,7 +11,6 @@ const AnagramTransformer = () => {
   const [progress, setProgress] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [containerDimensions, setContainerDimensions] = useState({ width: 0, height: 0 });
   
   // Dynamic content loaded from JSON
   const [content, setContent] = useState({
@@ -38,24 +37,6 @@ const AnagramTransformer = () => {
     Á: "a", É: "e", Í: "i", Ó: "o", Ú: "u",
     á: "a", é: "e", í: "i", ó: "o", ú: "u",
   };
-
-  // ResizeObserver to track container dimensions
-  useEffect(() => {
-    if (!containerRef.current) return;
-
-    const resizeObserver = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        const { width, height } = entry.contentRect;
-        setContainerDimensions({ width, height });
-      }
-    });
-
-    resizeObserver.observe(containerRef.current);
-
-    return () => {
-      resizeObserver.disconnect();
-    };
-  }, []);
 
   // Load content from JSON file
   useEffect(() => {
@@ -123,16 +104,13 @@ const AnagramTransformer = () => {
     };
   };
 
-  // Calculate consistent typography for all texts with mobile optimization
+  // Calculate consistent typography for all texts
   const calculateTypography = () => {
-    if (!containerRef.current || content.texts.length === 0 || !containerDimensions.width) return null;
+    if (!containerRef.current || content.texts.length === 0) return null;
 
-    const containerWidth = containerDimensions.width;
-    const containerHeight = containerDimensions.height;
+    const containerWidth = containerRef.current.clientWidth || 1200;
+    const containerHeight = containerRef.current.clientHeight || 600;
 
-    // Mobile detection
-    const isMobile = containerWidth < 768;
-    
     // Find the maximum requirements across ALL texts
     let maxLineLength = 0;
     let maxLines = 0;
@@ -145,43 +123,21 @@ const AnagramTransformer = () => {
       });
     });
 
-    // Mobile-optimized calculations
-    const padding = isMobile ? 16 : 32;
-    const availableWidth = containerWidth - (padding * 2);
-    const availableHeight = containerHeight - (padding * 2);
-    
-    // More conservative sizing for mobile
-    const widthBasedSize = availableWidth / (maxLineLength * (isMobile ? 0.55 : 0.6));
-    const heightBasedSize = availableHeight / (maxLines * (isMobile ? 1.3 : 1.2));
-    
-    // Lower maximum font size on mobile
-    const maxFontSize = isMobile ? 24 : 48;
-    const minFontSize = isMobile ? 8 : 12;
-    
-    const fontSize = Math.max(
-      minFontSize,
-      Math.min(widthBasedSize, heightBasedSize, maxFontSize)
+    // Calculate font size based on the maximum requirements - optimized for monospace
+    const fontSize = Math.min(
+      (containerWidth * 0.85) / (maxLineLength * 0.6),
+      (containerHeight * 0.7) / (maxLines * 1.2),
+      48
     );
-
-    const lineHeight = fontSize * (isMobile ? 1.3 : 1.2);
-    const charWidth = fontSize * (isMobile ? 0.55 : 0.6);
-    
-    // Center the text block
-    const textBlockWidth = maxLineLength * charWidth;
-    const textBlockHeight = maxLines * lineHeight;
-    const startX = (containerWidth - textBlockWidth) / 2;
-    const startY = (containerHeight - textBlockHeight) / 2;
 
     return {
       fontSize,
-      lineHeight,
-      charWidth,
-      startX: Math.max(padding, startX),
-      startY: Math.max(padding, startY),
+      lineHeight: fontSize * 1.2,
+      charWidth: fontSize * 0.6, // Precise monospace width
+      startX: (containerWidth - maxLineLength * fontSize * 0.6) / 2,
       maxLines,
       containerWidth,
       containerHeight,
-      isMobile,
     };
   };
 
@@ -195,9 +151,10 @@ const AnagramTransformer = () => {
       lineHeight,
       charWidth,
       startX,
-      startY,
-      isMobile,
+      containerHeight,
+      maxLines,
     } = typography;
+    const startY = (containerHeight - maxLines * lineHeight) / 2;
 
     lines.forEach((line, lineIndex) => {
       for (let charIndex = 0; charIndex < line.length; charIndex++) {
@@ -215,7 +172,6 @@ const AnagramTransformer = () => {
           left: ${startX + charIndex * charWidth}px;
           top: ${startY + lineIndex * lineHeight}px;
           transition: all 8s cubic-bezier(0.4, 0, 0.2, 1);
-          will-change: transform;
         `;
 
         const originalLayer = document.createElement("div");
@@ -238,7 +194,6 @@ const AnagramTransformer = () => {
           user-select: none;
           line-height: 1;
           transition: opacity 0.5s ease;
-          ${isMobile ? 'transform: translateZ(0);' : ''}
         `;
 
         originalLayer.style.cssText = layerStyle;
@@ -456,28 +411,23 @@ const AnagramTransformer = () => {
     }
   };
 
-  // Initialize with proper timing
+  // Initialize
   useEffect(() => {
-    if (!containerRef.current || content.texts.length === 0 || !containerDimensions.width) return;
+    if (!containerRef.current || content.texts.length === 0) return;
 
-    // Add a small delay to ensure container is fully rendered
-    const initTimeout = setTimeout(() => {
-      const { fromText } = getCurrentTexts();
+    const { fromText } = getCurrentTexts();
 
-      try {
-        containerRef.current.innerHTML = "";
-        const typography = calculateTypography();
-        if (!typography) return;
+    try {
+      containerRef.current.innerHTML = "";
+      const typography = calculateTypography();
+      if (!typography) return;
 
-        const letters1 = createLetterElements(fromText, "text1", containerRef.current, typography);
-        setIsInitialized(true);
-      } catch (error) {
-        console.error("Error in initialization:", error);
-      }
-    }, 100);
-
-    return () => clearTimeout(initTimeout);
-  }, [currentTextIndex, content.texts, containerDimensions]);
+      const letters1 = createLetterElements(fromText, "text1", containerRef.current, typography);
+      setIsInitialized(true);
+    } catch (error) {
+      console.error("Error in initialization:", error);
+    }
+  }, [currentTextIndex, content.texts]);
 
   // Handle play button
   const startAnimation = () => {
@@ -597,8 +547,6 @@ const AnagramTransformer = () => {
     );
   }
 
-  const messages = getMessages();
-
   return (
     <div style={{
       width: "100%",
@@ -608,232 +556,229 @@ const AnagramTransformer = () => {
       position: "relative",
       overflow: "hidden",
     }}>
-      {/* Main Animation Container */}
-      <div style={{
-        position: "absolute",
-        inset: "0",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "120px 20px 100px", // Responsive padding that accounts for header/footer
-      }}>
-        <div
-          ref={containerRef}
-          style={{
-            width: "100%",
-            height: "100%",
-            maxWidth: "1200px",
-            position: "relative",
-            background: "#ffffff",
-            borderRadius: "8px",
-            border: "1px solid #e5e5e5",
-            boxShadow: "0 4px 12px rgba(0, 122, 204, 0.1)",
-            minHeight: "300px",
-          }}
-        />
-      </div>
-
-      {/* Header */}
-      <div style={{
-        position: "absolute",
-        top: "0",
-        left: "0",
-        right: "0",
-        padding: "1.5rem",
-        textAlign: "center",
-        background: "rgba(255, 255, 255, 0.95)",
-        backdropFilter: "blur(10px)",
-        borderBottom: "1px solid #e5e5e5",
-      }}>
-        <h1 style={{
-          fontSize: "clamp(1.5rem, 4vw, 2rem)",
-          fontWeight: "600",
-          color: "#1a1a1a",
-          margin: "0 0 0.5rem 0",
-        }}>
-          {content.title}
-        </h1>
-        <p style={{
-          color: "#666",
-          fontStyle: "italic",
-          margin: "0",
-          fontSize: "clamp(1rem, 2.5vw, 1.1rem)",
-        }}>
-          {content.subtitles[currentTextIndex] || `Transformación ${currentTextIndex + 1}`}
-        </p>
-      </div>
-
-      {/* Controls Panel */}
-      <div style={{
-        position: "absolute",
-        bottom: "0",
-        left: "0",
-        right: "0",
-        background: "rgba(255, 255, 255, 0.95)",
-        backdropFilter: "blur(10px)",
-        borderTop: "1px solid #e5e5e5",
-        padding: "1rem",
-      }}>
-        <div style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          maxWidth: "900px",
-          margin: "0 auto",
-          flexWrap: "wrap",
-          gap: "1rem",
-        }}>
-          {/* Left: Play Control */}
-          <div style={{ display: "flex", alignItems: "center" }}>
-            <button
-              onClick={startAnimation}
-              disabled={!isInitialized || isPlaying}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "0.5rem",
-                padding: "0.75rem 1.5rem",
-                borderRadius: "6px",
-                fontWeight: "500",
-                fontSize: "1rem",
-                border: "none",
-                cursor: (isInitialized && !isPlaying) ? "pointer" : "not-allowed",
-                background: (isInitialized && !isPlaying) ? "#007acc" : "#ccc",
-                color: "#fff",
-                transition: "all 0.3s ease",
-                fontFamily: "inherit",
-              }}
-              onMouseEnter={(e) => {
-                if (isInitialized && !isPlaying) e.target.style.background = "#005a99";
-              }}
-              onMouseLeave={(e) => {
-                if (isInitialized && !isPlaying) e.target.style.background = "#007acc";
-              }}
-            >
-              <Play size={16} />
-              {messages.play}
-            </button>
-          </div>
-
-          {/* Center: Progress */}
-          <div style={{ 
-            flex: "1", 
-            maxWidth: "300px", 
-            margin: "0 1rem",
-            minWidth: "200px"
-          }}>
+      {/* Rest of component with dynamic messages */}
+      {(() => {
+        const messages = getMessages();
+        
+        return (
+          <>
+            {/* Main Animation Container */}
             <div style={{
-              fontSize: "0.9rem",
-              color: "#666",
-              marginBottom: "0.5rem",
-              textAlign: "center",
-            }}>
-              {getPhaseDescription()}
-            </div>
-            <div style={{
-              width: "100%",
-              height: "4px",
-              background: "#e5e5e5",
-              borderRadius: "2px",
-              overflow: "hidden",
-            }}>
-              <div style={{
-                width: `${progress}%`,
-                height: "100%",
-                background: "#007acc",
-                transition: "width 0.3s ease",
-                borderRadius: "2px",
-              }} />
-            </div>
-          </div>
-
-          {/* Right: Info */}
-          <button
-            onClick={() => setShowInfo(!showInfo)}
-            style={{
+              position: "absolute",
+              inset: "0",
               display: "flex",
               alignItems: "center",
-              gap: "0.5rem",
-              padding: "0.75rem",
-              borderRadius: "6px",
-              border: "1px solid #e5e5e5",
-              background: showInfo ? "#f8f9fa" : "#fff",
-              color: "#666",
-              cursor: "pointer",
-              transition: "all 0.3s ease",
-              fontFamily: "inherit",
-            }}
-          >
-            <Info size={16} />
-          </button>
-        </div>
-      </div>
+              justifyContent: "center",
+            }}>
+              <div
+                ref={containerRef}
+                style={{
+                  width: "90%",
+                  height: "70%",
+                  position: "relative",
+                  background: "#ffffff",
+                  borderRadius: "8px",
+                  border: "1px solid #e5e5e5",
+                  boxShadow: "0 4px 12px rgba(0, 122, 204, 0.1)",
+                  minHeight: "400px",
+                }}
+              />
+            </div>
 
-      {/* Info Panel */}
-      {showInfo && (
-        <div style={{
-          position: "absolute",
-          top: "50%",
-          left: "50%",
-          transform: "translate(-50%, -50%)",
-          background: "#fff",
-          border: "1px solid #e5e5e5",
-          borderRadius: "8px",
-          padding: "2rem",
-          maxWidth: "90vw",
-          width: "500px",
-          maxHeight: "80vh",
-          overflow: "auto",
-          boxShadow: "0 4px 12px rgba(0, 122, 204, 0.1)",
-          zIndex: 1000,
-        }}>
-          <h3 style={{
-            marginTop: "0",
-            marginBottom: "1rem",
-            color: "#1a1a1a",
-            fontSize: "1.4rem",
-          }}>
-            {messages.aboutTitle}
-          </h3>
-          <p style={{
-            color: "#666",
-            lineHeight: "1.6",
-            margin: "0 0 1rem 0",
-          }}>
-            {messages.aboutText}
-          </p>
-          <p style={{
-            color: "#666",
-            lineHeight: "1.6",
-            margin: "0 0 1.5rem 0",
-            fontSize: "0.9rem",
-            fontStyle: "italic",
-          }}>
-            {messages.aboutNote}
-          </p>
-          <button
-            onClick={() => setShowInfo(false)}
-            style={{
-              padding: "0.5rem 1rem",
-              borderRadius: "6px",
-              border: "none",
-              background: "#007acc",
-              color: "#fff",
-              cursor: "pointer",
-              fontFamily: "inherit",
-            }}
-          >
-            {messages.close}
-          </button>
-        </div>
-      )}
+            {/* Header */}
+            <div style={{
+              position: "absolute",
+              top: "0",
+              left: "0",
+              right: "0",
+              padding: "2rem",
+              textAlign: "center",
+              background: "rgba(255, 255, 255, 0.95)",
+              backdropFilter: "blur(10px)",
+              borderBottom: "1px solid #e5e5e5",
+            }}>
+              <h1 style={{
+                fontSize: "2rem",
+                fontWeight: "600",
+                color: "#1a1a1a",
+                margin: "0 0 0.5rem 0",
+              }}>
+                {content.title}
+              </h1>
+              <p style={{
+                color: "#666",
+                fontStyle: "italic",
+                margin: "0",
+                fontSize: "1.1rem",
+              }}>
+                {content.subtitles[currentTextIndex] || `Transformación ${currentTextIndex + 1}`}
+              </p>
+            </div>
 
-      {/* CSS for loading spinner */}
-      <style jsx>{`
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
+            {/* Controls Panel */}
+            <div style={{
+              position: "absolute",
+              bottom: "0",
+              left: "0",
+              right: "0",
+              background: "rgba(255, 255, 255, 0.95)",
+              backdropFilter: "blur(10px)",
+              borderTop: "1px solid #e5e5e5",
+              padding: "1.5rem 2rem",
+            }}>
+              <div style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                maxWidth: "900px",
+                margin: "0 auto",
+              }}>
+                {/* Left: Play Control */}
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <button
+                    onClick={startAnimation}
+                    disabled={!isInitialized || isPlaying}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                      padding: "0.75rem 1.5rem",
+                      borderRadius: "6px",
+                      fontWeight: "500",
+                      fontSize: "1rem",
+                      border: "none",
+                      cursor: (isInitialized && !isPlaying) ? "pointer" : "not-allowed",
+                      background: (isInitialized && !isPlaying) ? "#007acc" : "#ccc",
+                      color: "#fff",
+                      transition: "all 0.3s ease",
+                      fontFamily: "inherit",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (isInitialized && !isPlaying) e.target.style.background = "#005a99";
+                    }}
+                    onMouseLeave={(e) => {
+                      if (isInitialized && !isPlaying) e.target.style.background = "#007acc";
+                    }}
+                  >
+                    <Play size={16} />
+                    {messages.play}
+                  </button>
+                </div>
+
+                {/* Center: Progress */}
+                <div style={{ flex: "1", maxWidth: "300px", margin: "0 2rem" }}>
+                  <div style={{
+                    fontSize: "0.9rem",
+                    color: "#666",
+                    marginBottom: "0.5rem",
+                    textAlign: "center",
+                  }}>
+                    {getPhaseDescription()}
+                  </div>
+                  <div style={{
+                    width: "100%",
+                    height: "4px",
+                    background: "#e5e5e5",
+                    borderRadius: "2px",
+                    overflow: "hidden",
+                  }}>
+                    <div style={{
+                      width: `${progress}%`,
+                      height: "100%",
+                      background: "#007acc",
+                      transition: "width 0.3s ease",
+                      borderRadius: "2px",
+                    }} />
+                  </div>
+                </div>
+
+                {/* Right: Info */}
+                <button
+                  onClick={() => setShowInfo(!showInfo)}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                    padding: "0.75rem",
+                    borderRadius: "6px",
+                    border: "1px solid #e5e5e5",
+                    background: showInfo ? "#f8f9fa" : "#fff",
+                    color: "#666",
+                    cursor: "pointer",
+                    transition: "all 0.3s ease",
+                    fontFamily: "inherit",
+                  }}
+                >
+                  <Info size={16} />
+                </button>
+              </div>
+            </div>
+
+            {/* Info Panel */}
+            {showInfo && (
+              <div style={{
+                position: "absolute",
+                top: "50%",
+                left: "50%",
+                transform: "translate(-50%, -50%)",
+                background: "#fff",
+                border: "1px solid #e5e5e5",
+                borderRadius: "8px",
+                padding: "2rem",
+                maxWidth: "500px",
+                boxShadow: "0 4px 12px rgba(0, 122, 204, 0.1)",
+                zIndex: 1000,
+              }}>
+                <h3 style={{
+                  marginTop: "0",
+                  marginBottom: "1rem",
+                  color: "#1a1a1a",
+                  fontSize: "1.4rem",
+                }}>
+                  {messages.aboutTitle}
+                </h3>
+                <p style={{
+                  color: "#666",
+                  lineHeight: "1.6",
+                  margin: "0 0 1rem 0",
+                }}>
+                  {messages.aboutText}
+                </p>
+                <p style={{
+                  color: "#666",
+                  lineHeight: "1.6",
+                  margin: "0 0 1.5rem 0",
+                  fontSize: "0.9rem",
+                  fontStyle: "italic",
+                }}>
+                  {messages.aboutNote}
+                </p>
+                <button
+                  onClick={() => setShowInfo(false)}
+                  style={{
+                    padding: "0.5rem 1rem",
+                    borderRadius: "6px",
+                    border: "none",
+                    background: "#007acc",
+                    color: "#fff",
+                    cursor: "pointer",
+                    fontFamily: "inherit",
+                  }}
+                >
+                  {messages.close}
+                </button>
+              </div>
+            )}
+
+            {/* CSS for loading spinner */}
+            <style jsx>{`
+              @keyframes spin {
+                to { transform: rotate(360deg); }
+              }
+            `}</style>
+          </>
+        );
+      })()}
     </div>
   );
 };
