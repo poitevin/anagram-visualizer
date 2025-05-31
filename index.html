@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualizador de Anagramas - Pedro Poitevin</title>
+    <meta name="description" content="Visualización interactiva de transformaciones anagramáticas entre textos poéticos palindrómicos">
+    <meta name="author" content="Pedro Poitevin">
+    <meta name="keywords" content="anagram, poetry, visualization, palindrome, spanish, literature">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://your-username.github.io/anagram-visualizer/">
+    <meta property="og:title" content="Visualizador de Anagramas - Pedro Poitevin">
+    <meta property="og:description" content="Visualización interactiva de transformaciones anagramáticas entre textos poéticos palindrómicos">
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://your-username.github.io/anagram-visualizer/">
+    <meta property="twitter:title" content="Visualizador de Anagramas - Pedro Poitevin">
+    <meta property="twitter:description" content="Visualización interactiva de transformaciones anagramáticas entre textos poéticos palindrómicos">
+    
+    <!-- Preload fonts for better performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <!-- Basic styling to prevent flash of unstyled content -->
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #fafafa 0%, #ffffff 50%, #f8f9fa 100%);
+            overflow: hidden;
+        }
+        
+        #root {
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        /* Loading state styling */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            color: #666;
+            font-size: 1.2rem;
+        }
+        
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #e5e5e5;
+            border-radius: 50%;
+            border-top-color: #007acc;
+            animation: spin 1s ease-in-out infinite;
+            margin-left: 1rem;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Error state styling */
+        .error {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            color: #dc3545;
+            text-align: center;
+            padding: 2rem;
+        }
+        
+        .error button {
+            margin-top: 1rem;
+            padding: 0.5rem 1rem;
+            border: 1px solid #007acc;
+            background: #007acc;
+            color: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        
+        .error button:hover {
+            background: #005a99;
+        }
+    </style>
+</head>
+<body>
+    <div id="root">
+        <div class="loading">
+            Cargando visualizador de anagramas...
+            <div class="loading-spinner"></div>
+        </div>
+    </div>
+    
+    <!-- Fallback for users with JavaScript disabled -->
+    <noscript>
+        <div style="display: flex; align-items: center; justify-content: center; height: 100vh; text-align: center; padding: 2rem; color: #666;">
+            <div>
+                <h2>JavaScript Requerido</h2>
+                <p>Este visualizador de anagramas requiere JavaScript para funcionar.</p>
+                <p>Por favor, habilita JavaScript en tu navegador y recarga la página.</p>
+            </div>
+        </div>
+    </noscript>
+    
+    <script type="module" src="/src/main.jsx"></script>
+</body>
+</html>
