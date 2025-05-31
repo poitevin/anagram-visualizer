@@ -49,7 +49,9 @@ const AnagramTransformer = () => {
         const urlParams = new URLSearchParams(window.location.search);
         const textSet = urlParams.get('texts') || 'sonetos-palindromicos';
         
-        const response = await fetch(`./texts/${textSet}.json`);
+        // Use absolute path that works with GitHub Pages base path
+        const basePath = import.meta.env.BASE_URL || '/';
+        const response = await fetch(`${basePath}texts/${textSet}.json`);
         if (!response.ok) {
           throw new Error(`Failed to load text set: ${textSet}`);
         }
