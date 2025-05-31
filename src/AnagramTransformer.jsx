@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Play, RotateCcw, Info } from "lucide-react";
+import { Play, Info } from "lucide-react";
 
 const AnagramTransformer = () => {
   const containerRef = useRef(null);
@@ -437,15 +437,6 @@ const AnagramTransformer = () => {
     runCSSAnimation();
   };
 
-  // Reset animation
-  const resetAnimation = () => {
-    setCurrentTextIndex(0);
-    setIsPlaying(false);
-    setCurrentPhase("text1");
-    setIsInitialized(false);
-    setProgress(0);
-  };
-
   // Get localized messages based on content language
   const getMessages = () => {
     const isEnglish = content.language === 'en';
@@ -455,7 +446,6 @@ const AnagramTransformer = () => {
       errorTitle: isEnglish ? 'Error loading texts' : 'Error al cargar los textos',
       retry: isEnglish ? 'Retry' : 'Reintentar',
       play: isEnglish ? 'Play' : 'Reproducir',
-      reset: isEnglish ? 'Reset' : 'Reiniciar',
       aboutTitle: isEnglish ? 'About this animation' : 'Sobre esta animación',
       aboutText: isEnglish 
         ? 'This animation demonstrates the anagrammatic transformation between poetic texts. Each letter moves from its original position to its new location, revealing how the same letters can form completely different texts.'
@@ -643,8 +633,8 @@ const AnagramTransformer = () => {
                 maxWidth: "900px",
                 margin: "0 auto",
               }}>
-                {/* Left: Play Controls */}
-                <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+                {/* Left: Play Control */}
+                <div style={{ display: "flex", alignItems: "center" }}>
                   <button
                     onClick={startAnimation}
                     disabled={!isInitialized || isPlaying}
@@ -672,36 +662,6 @@ const AnagramTransformer = () => {
                   >
                     <Play size={16} />
                     {messages.play}
-                  </button>
-
-                  <button
-                    onClick={resetAnimation}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "0.5rem",
-                      padding: "0.75rem 1rem",
-                      borderRadius: "6px",
-                      fontWeight: "500",
-                      fontSize: "1rem",
-                      border: "1px solid #007acc",
-                      background: "transparent",
-                      color: "#007acc",
-                      cursor: "pointer",
-                      transition: "all 0.3s ease",
-                      fontFamily: "inherit",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.target.style.background = "#007acc";
-                      e.target.style.color = "#fff";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.target.style.background = "transparent";
-                      e.target.style.color = "#007acc";
-                    }}
-                  >
-                    <RotateCcw size={16} />
-                    {messages.reset}
                   </button>
                 </div>
 
